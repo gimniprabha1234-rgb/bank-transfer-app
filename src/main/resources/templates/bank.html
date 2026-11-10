@@ -1,0 +1,420 @@
+
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank Transfer System</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f5f9;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: auto;
+        }
+
+        header {
+            background: #12345a;
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            margin: 0;
+        }
+
+        .card {
+            background: white;
+            padding: 22px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px #00000012;
+        }
+
+        h2 {
+            color: #12345a;
+            margin-top: 0;
+        }
+
+        input, select, button {
+            padding: 11px;
+            margin: 6px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 100%;
+        }
+
+        button {
+            background: #12345a;
+            color: white;
+            cursor: pointer;
+            border: none;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #245b91;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+        }
+
+        .stat {
+            background: #eaf1fa;
+            padding: 18px;
+            border-radius: 8px;
+        }
+
+        .stat h3 {
+            margin: 0 0 10px;
+            color: #12345a;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th {
+            background: #12345a;
+            color: white;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        .validation {
+            color: red;
+            font-size: 13px;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-form input {
+            flex: 1;
+        }
+
+        .search-form button {
+            width: 120px;
+        }
+
+        a {
+            color: #1769aa;
+            text-decoration: none;
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-row input {
+            width: auto;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+
+            .search-form {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 12px;
+            }
+
+            th, td {
+                padding: 7px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <header>
+        <h1>Bank Transfer System</h1>
+        <p>Manage customers and transfer money securely</p>
+    </header>
+
+    <!-- Messages -->
+    <div class="success"
+         th:if="${successMessage}"
+         th:text="${successMessage}">
+    </div>
+
+    <div class="error"
+         th:if="${errorMessage}"
+         th:text="${errorMessage}">
+    </div>
+
+    <!-- Dashboard Statistics -->
+    <section class="card">
+        <h2>Dashboard Overview</h2>
+
+        <div class="stats">
+
+            <div class="stat">
+                <h3>Total Balance</h3>
+                <p>Rs. <span th:text="${totalBalance}"></span></p>
+            </div>
+
+            <div class="stat">
+                <h3>Customers</h3>
+                <p th:text="${#lists.size(customers)}"></p>
+            </div>
+
+            <div class="stat">
+                <h3>Successful Transfers</h3>
+                <p th:text="${successCount}"></p>
+            </div>
+
+            <div class="stat">
+                <h3>Failed Transfers</h3>
+                <p th:text="${failedCount}"></p>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Transfer Money -->
+    <section class="card">
+        <h2>Transfer Money</h2>
+
+        <form th:action="@{/transfer}"
+              th:object="${transferRequest}"
+              method="post">
+
+            <label>From Account</label>
+
+            <select th:field="*{fromAccount}">
+                <option value="">Select sender account</option>
+
+                <option th:each="customer : ${customers}"
+                        th:value="${customer.accountNumber}"
+                        th:text="${customer.accountNumber + ' - ' + customer.fullName}">
+                </option>
+            </select>
+
+            <label>To Account</label>
+
+            <select th:field="*{toAccount}">
+                <option value="">Select receiver account</option>
+
+                <option th:each="customer : ${customers}"
+                        th:value="${customer.accountNumber}"
+                        th:text="${customer.accountNumber + ' - ' + customer.fullName}">
+                </option>
+            </select>
+
+            <label>Transfer Amount (Rs.)</label>
+
+            <input type="number"
+                   step="0.01"
+                   min="0.01"
+                   th:field="*{amount}"
+                   placeholder="Enter amount">
+
+            <div class="validation"
+                 th:if="${#fields.hasErrors('amount')}"
+                 th:errors="*{amount}">
+            </div>
+
+            <div class="validation"
+                 th:if="${#fields.hasErrors('fromAccount')}"
+                 th:errors="*{fromAccount}">
+            </div>
+
+            <div class="validation"
+                 th:if="${#fields.hasErrors('toAccount')}"
+                 th:errors="*{toAccount}">
+            </div>
+
+            <div class="checkbox-row">
+                <input type="checkbox"
+                       th:field="*{simulateFailure}">
+                <label for="simulateFailure">
+                    Simulate transaction failure
+                </label>
+            </div>
+
+            <button type="submit">Transfer Money</button>
+
+        </form>
+    </section>
+
+    <!-- Search Customers -->
+    <section class="card">
+        <h2>Search Customers</h2>
+
+        <form th:action="@{/search}"
+              method="get"
+              class="search-form">
+
+            <input type="text"
+                   name="keyword"
+                   placeholder="Search customer name"
+                   th:value="${keyword}">
+
+            <button type="submit">Search</button>
+        </form>
+
+        <p><a th:href="@{/}">Show all customers</a></p>
+    </section>
+
+    <!-- Customer Details -->
+    <section class="card">
+        <h2>Customer Details</h2>
+
+        <table>
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Account Number</th>
+                <th>Full Name</th>
+                <th>Email</th>
+                <th>Balance (Rs.)</th>
+                <th>History</th>
+            </tr>
+            </thead>
+
+            <tbody>
+            <tr th:each="customer : ${customers}">
+                <td th:text="${customer.id}"></td>
+                <td th:text="${customer.accountNumber}"></td>
+                <td th:text="${customer.fullName}"></td>
+                <td th:text="${customer.email}"></td>
+                <td th:text="${customer.balance}"></td>
+
+                <td>
+                    <a th:href="@{/history/{account}(account=${customer.accountNumber})}">
+                        View History
+                    </a>
+                </td>
+            </tr>
+
+            <tr th:if="${#lists.isEmpty(customers)}">
+                <td colspan="6">No customers found.</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- Add New Customer -->
+    <section class="card">
+        <h2>Add New Customer</h2>
+
+        <form th:action="@{/customers}" method="post">
+
+            <label>Account Number</label>
+            <input type="text"
+                   name="accountNumber"
+                   placeholder="Enter account number"
+                   required>
+
+            <label>Full Name</label>
+            <input type="text"
+                   name="fullName"
+                   placeholder="Enter full name"
+                   required>
+
+            <label>Email</label>
+            <input type="email"
+                   name="email"
+                   placeholder="Enter email address"
+                   required>
+
+            <label>Initial Balance (Rs.)</label>
+            <input type="number"
+                   name="balance"
+                   min="0"
+                   step="0.01"
+                   placeholder="Enter initial balance"
+                   required>
+
+            <button type="submit">Add Customer</button>
+
+        </form>
+    </section>
+
+    <!-- Recent Transactions -->
+    <section class="card">
+        <h2>Recent Transactions</h2>
+
+        <table>
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>From Account</th>
+                <th>To Account</th>
+                <th>Amount (Rs.)</th>
+                <th>Status</th>
+                <th>Date</th>
+            </tr>
+            </thead>
+
+            <tbody>
+            <tr th:each="transaction : ${transactions}">
+                <td th:text="${transaction.id}"></td>
+                <td th:text="${transaction.fromAccount}"></td>
+                <td th:text="${transaction.toAccount}"></td>
+                <td th:text="${transaction.amount}"></td>
+                <td th:text="${transaction.status}"></td>
+                <td th:text="${transaction.createdAt}"></td>
+            </tr>
+
+            <tr th:if="${#lists.isEmpty(transactions)}">
+                <td colspan="6">No transactions available.</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+</div>
+
+</body>
+</html>
